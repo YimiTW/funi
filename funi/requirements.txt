@@ -1,0 +1,9 @@
+torch
+transformers
+accelerate
+python-dotenv
+discord.py
+selenium
+googlesearch-python
+datasets
+gradio
