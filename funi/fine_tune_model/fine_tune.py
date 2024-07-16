@@ -33,10 +33,10 @@ lora_config = LoraConfig(
 ) # 定義QLoRA配置
 training_args = TrainingArguments(
     num_train_epochs=100,           # 训练的轮数
-    output_dir="./results",         # 保存模型和其他输出的目录
+    output_dir="./funi/fine_tune_model/results",         # 保存模型和其他输出的目录
     per_device_train_batch_size=1,  # 每个设备的训练批次大小
     per_device_eval_batch_size=2,   # 每个设备的评估批次大小
-    logging_dir="./logs",           # 日志文件保存目录
+    logging_dir="./funi/fine_tune_model/logs",           # 日志文件保存目录
     logging_steps=10,               # 每隔多少步记录一次日志
     fp16=True,                       # 启用FP16训练
     gradient_accumulation_steps=16
