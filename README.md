@@ -7,7 +7,7 @@
 3. 新增 .env 文件
 
 * 若要下載大語言模型，請前往 [Hunggingface](https://huggingface.co/) ，選擇 [Models](https://huggingface.co/models) ，並選擇適合的模型
-* 若要連線到 Discord ，請在 .env 文件中新增 `token = <your_toekn>`
+* 若要連線到 Discord ，請在 .env 文件中新增 `token = <your_token>`
 
 ### 運行模型
 1. 運行 local.py 或 connect_to_discord.py ，運行大語言模型
