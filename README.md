@@ -23,7 +23,7 @@
 2. 運行 fine_tune.py
 
 ## 這項專案使用的專案
-* [Llama 3 8B Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct) - Licensed under the Apache License 2.0
+* [Llama 3 8B Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct) - Licensed under the LLAMA 3 COMMUNITY LICENSE
 
 ## License
 
@@ -33,7 +33,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 This project makes use of the following open-source projects:
 
-* [Llama 3 8B Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct) - Licensed under the Apache License 2.0
+* [Llama 3 8B Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct) - Licensed under the LLAMA 3 COMMUNITY LICENSE
 
 ## 備註
 * 微調llama 3基礎模型的功能尚未完成
