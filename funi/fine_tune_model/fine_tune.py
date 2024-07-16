@@ -32,7 +32,7 @@ lora_config = LoraConfig(
     bias="none",
 ) # 定義QLoRA配置
 training_args = TrainingArguments(
-    num_train_epochs=100,           # 训练的轮数
+    num_train_epochs=15,           # 训练的轮数 1000筆數據 20~50 3000~5000筆數據 10~20 10000筆數據以上 5~10
     output_dir="./funi/fine_tune_model/results",         # 保存模型和其他输出的目录
     per_device_train_batch_size=1,  # 每个设备的训练批次大小
     per_device_eval_batch_size=2,   # 每个设备的评估批次大小
