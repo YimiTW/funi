@@ -19,6 +19,7 @@ output_dir = os.getenv("fine_tuned_model")
 
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,
+    load_in_8bit=False,
     bnb_4bit_quant_type='nf4',
     bnb_4bit_use_double_quant=True,
     bnb_4bit_compute_dtype=torch.bfloat16
@@ -32,7 +33,7 @@ lora_config = LoraConfig(
     bias="none",
 ) # 定義QLoRA配置
 training_args = TrainingArguments(
-    num_train_epochs=100,           # 训练的轮数 1000筆數據 20~50 3000~5000筆數據 10~20 10000筆數據以上 5~10
+    num_train_epochs=50,           # 训练的轮数 1000筆數據 20~50 3000~5000筆數據 10~20 10000筆數據以上 5~10
     output_dir="./funi/fine_tune_model/results",         # 保存模型和其他输出的目录
     per_device_train_batch_size=1,  # 每个设备的训练批次大小
     per_device_eval_batch_size=2,   # 每个设备的评估批次大小
@@ -64,7 +65,6 @@ def apply_multi_role_chat_template(examples):
     for sn, ss, rn, rs in zip(examples['說話者'], examples['說話者話語'], examples['回應者'], examples['回應者話語']):
         chat_str = f"<|begin_of_text|><|start_header_id|>{sn}<|end_header_id|>{ss}<|eot_id|><|start_header_id|>{rn}<|end_header_id|>{rs}<|end_of_text|>"
         formatted_data.append(chat_str)
-    print(formatted_data)
     return formatted_data
 
 def preprocess_chat_data(examples):

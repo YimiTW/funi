@@ -2,7 +2,7 @@ import time
 # start pinging
 start_time = time.time()
 
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM#, BitsAndBytesConfig
 import json
 import datetime
 import os
@@ -23,18 +23,18 @@ model_path = os.getenv("run_model")
 chat_data_all_path = "./chat_data/chat_data_all.json"
 chat_data_all_backup_path = "./chat_data/chat_data_all_backup.json"
 
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type='nf4',
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_compute_dtype=torch.bfloat16
-)
+#bnb_config = BitsAndBytesConfig(
+#    load_in_4bit=True,
+#    bnb_4bit_quant_type='nf4',
+#    bnb_4bit_use_double_quant=True,
+#    bnb_4bit_compute_dtype=torch.bfloat16
+#)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(
     model_path,
     torch_dtype=torch.bfloat16,
     device_map="auto",
-    quantization_config=bnb_config
+    #quantization_config=bnb_config
 )
 # end pining
 end_time = time.time()
