@@ -23,18 +23,11 @@ model_path = os.getenv("run_model")
 chat_data_all_path = "./chat_data/chat_data_all.json"
 chat_data_all_backup_path = "./chat_data/chat_data_all_backup.json"
 
-#bnb_config = BitsAndBytesConfig(
-#    load_in_4bit=True,
-#    bnb_4bit_quant_type='nf4',
-#    bnb_4bit_use_double_quant=True,
-#    bnb_4bit_compute_dtype=torch.bfloat16
-#)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(
     model_path,
     torch_dtype=torch.bfloat16,
     device_map="auto",
-    #quantization_config=bnb_config
 )
 # end pining
 end_time = time.time()
@@ -43,7 +36,7 @@ print(f"\n[ Load take {int((end_time-start_time)*1000)}ms ]\n")
 def generate_response(messages):
     input_ids = tokenizer.encode(messages, return_tensors="pt").to(device)
     
-    attention_mask = (input_ids != tokenizer.eos_token_id).long().to(device)
+    attention_mask = torch.ones(input_ids.shape, dtype=torch.long, device=device)
 
     outputs = model.generate(
         input_ids, 
@@ -52,8 +45,7 @@ def generate_response(messages):
         do_sample=True, 
         temperature=0.6, 
         top_p=0.9, 
-        pad_token_id=tokenizer.pad_token_id
-        
+        pad_token_id=tokenizer.eos_token_id
     )
     
     response = tokenizer.decode(outputs[0][input_ids.shape[-1]:], skip_special_tokens=True)
@@ -68,7 +60,7 @@ def main_request(speaker_input, speaker):
     all_messages = "<|begin_of_text|>"
     
     for message in messages_list:
-        msg = f"<|start_header_id|>{message['speaker_name']}<|end_header_id|>{message['speaker_input']}<|eot_id|>"
+        msg = f"<|start_header_id|>{message['speaker_name']}<|end_header_id|>{message['speaker_input']}<|end_of_text|>"
         all_messages += msg
     all_messages += "<|start_header_id|>Funi<|end_header_id|>"
         
