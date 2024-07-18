@@ -27,5 +27,13 @@ for dataset_path in path_list:
     train_split = get_train_split(cache_dict, train_split)
     eval_split = get_train_split(cache_dict, eval_split)
 
+def preprocess_chat_data(examples):
+    formatted_data = []
+    for sn, ss, rn, rs in zip(examples['說話者'], examples['說話者話語'], examples['回應者'], examples['回應者話語']):
+        chat_str = f"{sn}: {ss}<|end_of_text|>{rn}: {rs}<|end_of_text|>"
+        formatted_data.append(chat_str)
+    out = tokenizer(formatted_data, max_length=512, truncation=True, padding='max_length')
+    return out
+
 dataset = {"train":train_split, "eval":eval_split}
 print(dataset)

@@ -3,8 +3,6 @@ import time
 start_time = time.time()
 
 from transformers import AutoTokenizer, AutoModelForCausalLM#, BitsAndBytesConfig
-import json
-import datetime
 import os
 import torch
 
@@ -19,7 +17,7 @@ load_dotenv()
 
 # Initialize model and tokenizer
 mode = 'local'
-model_path = os.getenv("run_model")
+model_path = os.getenv("model_path")
 chat_data_all_path = "./chat_data/chat_data_all.json"
 chat_data_all_backup_path = "./chat_data/chat_data_all_backup.json"
 
@@ -34,14 +32,15 @@ end_time = time.time()
 print(f"\n[ Load take {int((end_time-start_time)*1000)}ms ]\n")
 
 def generate_response(messages):
-    input_ids = tokenizer.encode(messages, return_tensors="pt").to(device)
+    input_ids = tokenizer.apply_chat_template(
+        messages, 
+        add_generation_prompt=True, 
+        return_tensors="pt"
+        ).to("cuda")
     
-    attention_mask = torch.ones(input_ids.shape, dtype=torch.long, device=device)
-
     outputs = model.generate(
         input_ids, 
-        attention_mask=attention_mask,
-        max_new_tokens=1024, 
+        max_new_tokens=256, 
         do_sample=True, 
         temperature=0.6, 
         top_p=0.9, 
@@ -56,15 +55,9 @@ def main_request(speaker_input, speaker):
     # pinging start
     start_time = time.time()
     messages_list = []
-    messages_list.append({"speaker_name": speaker, "speaker_input": speaker_input})
-    all_messages = "<|begin_of_text|>"
-    
-    for message in messages_list:
-        msg = f"<|start_header_id|>{message['speaker_name']}<|end_header_id|>{message['speaker_input']}<|end_of_text|>"
-        all_messages += msg
-    all_messages += "<|start_header_id|>Funi<|end_header_id|>"
+    messages_list.append({"role": speaker, "content": speaker_input})
         
-    response = generate_response(all_messages)
+    response = generate_response(messages_list)
     # pinging end
     end_time = time.time()
     print(f"\n[ping:{int((end_time - start_time)*1000)}ms]{funi_mind.funi_name}: {response}")

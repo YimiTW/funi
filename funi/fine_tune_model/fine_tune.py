@@ -3,6 +3,7 @@ import time
 start_time = time.time()
 
 from datasets import Dataset
+from trl import SFTConfig, SFTTrainer
 from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments, BitsAndBytesConfig,DataCollatorForLanguageModeling
 from peft import get_peft_model, LoraConfig, TaskType
 import torch
@@ -59,23 +60,21 @@ import dataset_loader
 train_dataset = Dataset.from_list(dataset_loader.dataset['train'])
 eval_dataset = Dataset.from_list(dataset_loader.dataset['eval'])
 
-def preprocess_chat_data(examples):
-    formatted_data = []
-    for sn, ss, rn, rs in zip(examples['說話者'], examples['說話者話語'], examples['回應者'], examples['回應者話語']):
-        chat_str = f"<|begin_of_text|><|start_header_id|>{sn}<|end_header_id|>{ss}<|end_of_text|><|start_header_id|>{rn}<|end_header_id|>{rs}<|end_of_text|>"
-        formatted_data.append(chat_str)
-    out = tokenizer(formatted_data, max_length=512, truncation=True, padding='max_length')
-    return out
+
 
 tokenized_train_datasets = train_dataset.map(preprocess_chat_data, batched=True) # Preprocess the train dataset
 tokenized_eval_datasets = eval_dataset.map(preprocess_chat_data, batched=True) # Preprocess the eval dataset
+
+sft_config = SFTConfig(
+    dataset_text_field="text",
+    max_seq_length=512,
+    output_dir="/tmp",
+)
 # end
-trainer = Trainer(
+trainer = SFTTrainer(
     model=model,
-    args=training_args,
     train_dataset=tokenized_train_datasets,
-    eval_dataset=tokenized_eval_datasets,
-    data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False),
+    args=sft_config
 ) # 定義Trainer
 
 end_time = time.time()
