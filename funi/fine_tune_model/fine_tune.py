@@ -1,95 +1,122 @@
-# fine-tune will not update for a long time
-import time
-start_time = time.time()
-
-from datasets import Dataset
-from trl import SFTConfig, SFTTrainer
-from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments, BitsAndBytesConfig,DataCollatorForLanguageModeling
-from peft import get_peft_model, LoraConfig, TaskType
-import torch
-import os
+import torch, os, datasets
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from dotenv import load_dotenv
-# check if cuda is available
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"\n\n[ device: {device} ]\n\n")
-
-# use your model path
 load_dotenv()
-model_path = os.getenv("model_path")
-output_dir = os.getenv("fine_tuned_model")
+
+model_id = os.getenv("model_path")
 
 bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type='nf4',
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_compute_dtype=torch.bfloat16
-) # quantization config
-lora_config = LoraConfig(
-    task_type=TaskType.CAUSAL_LM,  # 任務類型
-    inference_mode=False,          # 訓練模式
-    r=8,                           # Low-rank adaptation 參數
-    lora_alpha=32,                 # LoRA 放大係數
-    lora_dropout=0.1,              # LoRA dropout率
-    bias="none",
-) # 定義QLoRA配置
-training_args = TrainingArguments(
-    num_train_epochs=30,           # 训练的轮数 1000筆數據 20~50 3000~5000筆數據 10~20 10000筆數據以上 5~10
-    output_dir="./funi/fine_tune_model/results",         # 保存模型和其他输出的目录
-    per_device_train_batch_size=1,  # 每个设备的训练批次大小
-    per_device_eval_batch_size=2,   # 每个设备的评估批次大小
-    logging_dir="./funi/fine_tune_model/logs",           # 日志文件保存目录
-    logging_steps=10,               # 每隔多少步记录一次日志
-    fp16=True,                       # 启用FP16训练
-    gradient_accumulation_steps=16
-) # 訓練參數設置
-
-# Tokenizer 加載
-tokenizer = AutoTokenizer.from_pretrained(model_path)
-tokenizer.pad_token = tokenizer.eos_token
-model = AutoModelForCausalLM.from_pretrained(
-    model_path,
-    torch_dtype=torch.bfloat16,
-    device_map="auto",
-    quantization_config=bnb_config
-) # 加載4-bit量化模型
-
-model = get_peft_model(model, lora_config) # 應用QLoRA到模型
-
-# load dataset
-import dataset_loader
-train_dataset = Dataset.from_list(dataset_loader.dataset['train'])
-eval_dataset = Dataset.from_list(dataset_loader.dataset['eval'])
-
-
-
-tokenized_train_datasets = train_dataset.map(preprocess_chat_data, batched=True) # Preprocess the train dataset
-tokenized_eval_datasets = eval_dataset.map(preprocess_chat_data, batched=True) # Preprocess the eval dataset
-
-sft_config = SFTConfig(
-    dataset_text_field="text",
-    max_seq_length=512,
-    output_dir="/tmp",
+    load_in_4bit=True, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
 )
-# end
+
+use_flash_attention = False
+model = AutoModelForCausalLM.from_pretrained(
+    model_id,
+    quantization_config=bnb_config,
+	use_cache=False,
+    use_flash_attention_2=use_flash_attention,
+    device_map="auto",
+)
+
+
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+tokenizer.pad_token = tokenizer.eos_token
+tokenizer.padding_side = "right"
+
+from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
+ 
+# LoRA config based on QLoRA paper
+peft_config = LoraConfig(
+        lora_alpha=16,
+        lora_dropout=0.1,
+        r=64,
+        bias="none",
+        task_type="CAUSAL_LM",
+)
+ 
+ 
+# prepare model for training
+model = prepare_model_for_kbit_training(model)
+model = get_peft_model(model, peft_config)
+
+from transformers import TrainingArguments
+
+args = TrainingArguments(
+    output_dir="llama-7-int4-dolly",
+    num_train_epochs=3,
+    per_device_train_batch_size=1,
+    gradient_accumulation_steps=2,
+    gradient_checkpointing=True,
+    optim="paged_adamw_32bit",
+    logging_steps=10,
+    save_strategy="epoch",
+    #learning_rate=2e-4,
+    bf16=True,
+    tf32=True,
+    max_grad_norm=0.3,
+    warmup_ratio=0.03,
+    lr_scheduler_type="constant",
+    disable_tqdm=True # disable tqdm since with packing values are in correct
+)
+
+from trl import SFTTrainer
+ 
+max_seq_length = 2048 # max sequence length for model and packing of the dataset
+
+import dataset_loader
+def format_instruction(sample):
+	inputs = [f"""### {sn}:
+{ss}
+ 
+### {rn}:
+{rs}
+""" for sn, ss, rn, rs in zip(sample["說話者"], sample["說話者話語"], sample["回應者"], sample["回應者話語"], )]
+	print(inputs)
+	out = tokenizer(inputs, max_length=512, truncation=True, padding='max_length')
+	return out
+
+dataset = datasets.Dataset.from_list(dataset_loader.dataset['train'])
+dataset = dataset.map(format_instruction, batched=True)
+
 trainer = SFTTrainer(
     model=model,
-    train_dataset=tokenized_train_datasets,
-    args=sft_config
-) # 定義Trainer
+    train_dataset=dataset,
+    peft_config=peft_config,
+    max_seq_length=max_seq_length,
+    tokenizer=tokenizer,
+    packing=False,
+    args=args,
+)
 
-end_time = time.time()
-print(f"\n\n[ load take {int((end_time-start_time)*1000)}ms ]\n\n")
-start_time = time.time()
-trainer.train() # 微調模型
-# 合併模型
-model = model.merge_and_unload()
-# 保存微調後的模型
-model.save_pretrained(output_dir)
-# Tokenizer 也要跟著另外存一份
-tokenizer.save_pretrained(output_dir)
-# 評估模型（可選）
-eval_results = trainer.evaluate()
-print(f"Evaluation results: {eval_results}")
+trainer.train()
+trainer.save_model()
 
-end_time = time.time()
-print(f"\n\n[ train take {int((end_time-start_time))}s ]\n\n")
+import torch
+from peft import AutoPeftModelForCausalLM
+from transformers import AutoTokenizer
+ 
+args.output_dir = "llama-7-int4-dolly"
+ 
+# load base LLM model and tokenizer
+model = AutoPeftModelForCausalLM.from_pretrained(
+    args.output_dir,
+    low_cpu_mem_usage=True,
+    torch_dtype=torch.float16,
+    load_in_4bit=True,
+)
+tokenizer = AutoTokenizer.from_pretrained(args.output_dir)
+
+from datasets import load_dataset
+ 
+prompt = f"""### Yimi:
+Hi
+ 
+### Funi:
+"""
+ 
+input_ids = tokenizer(prompt, return_tensors="pt", truncation=True).input_ids.cuda()
+# with torch.inference_mode():
+outputs = model.generate(input_ids=input_ids, max_new_tokens=100, do_sample=True, top_p=0.9,temperature=0.9)
+ 
+
+print(f"Generated instruction:\n{tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0][len(prompt):]}")
