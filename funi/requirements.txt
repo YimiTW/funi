@@ -6,4 +6,5 @@ discord.py
 selenium
 googlesearch-python
 datasets
-gradio
+sentencepiece
+peft
