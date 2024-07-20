@@ -38,7 +38,7 @@ model = AutoModelForCausalLM.from_pretrained(
 # end pining
 end_time = time.time()
 print(f"\n[ Load take {int((end_time-start_time)*1000)}ms ]\n")
-print(tokenizer.pad_token)
+
 def generate_response(conversation):
     input_ids = tokenizer(conversation, truncation=True, return_tensors="pt").input_ids.cuda()
     
@@ -51,7 +51,8 @@ def generate_response(conversation):
         eos_token_id=tokenizer.eos_token_id,
         pad_token_id=tokenizer.pad_token_id,
     )
-    response = tokenizer.decode(outputs[0][input_ids.shape[-1]:], skip_special_tokens=True)
+    response = tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0][len(conversation):]
+    print(outputs[0][input_ids.shape[-1]:])
     return response
 
 def main_request(speaker_input, speaker):

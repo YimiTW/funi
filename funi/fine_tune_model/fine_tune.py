@@ -67,9 +67,10 @@ import dataset_loader
 def format_instruction(sample):
 	inputs = [f"""### {sn}:
 {ss}
- 
+
 ### {rn}:
-{rs}{tokenizer.eos_token}
+{rs}
+{tokenizer.eos_token}
 """ for sn, ss, rn, rs in zip(sample["說話者"], sample["說話者話語"], sample["回應者"], sample["回應者話語"], )]
 
 	out = tokenizer(inputs, max_length=512, truncation=True, padding='max_length')
