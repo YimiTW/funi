@@ -26,7 +26,7 @@ tokenizer.padding_side = "right"
 print(len(tokenizer))
 
 from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
- 
+
 # LoRA config based on QLoRA paper
 peft_config = LoraConfig(
         lora_alpha=16,
@@ -35,7 +35,6 @@ peft_config = LoraConfig(
         bias="none",
         task_type="CAUSAL_LM",
 )
- 
  
 # prepare model for training
 model = prepare_model_for_kbit_training(model)
@@ -65,7 +64,8 @@ from trl import SFTTrainer
 
 import dataset_loader
 def format_instruction(sample):
-	inputs = [f"""### {sn}:
+	inputs = [f"""{tokenizer.eos_token}
+### {sn}:
 {ss}
 
 ### {rn}:
@@ -88,7 +88,6 @@ trainer = SFTTrainer(
     max_seq_length=8192,
     args=args,
 )
-
 trainer.train()
 trainer.save_model()
 
@@ -101,7 +100,7 @@ model = AutoPeftModelForCausalLM.from_pretrained(
     load_in_4bit=True,
 )
 tokenizer = AutoTokenizer.from_pretrained(args.output_dir)
- 
+
 prompt = f"""### Yimi:
 Hi
 
@@ -121,10 +120,10 @@ outputs = model.generate(
 )
 
 print(f"adapter:\n{tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0][len(prompt):]}")
- 
+
 # Merge LoRA and base model
 merged_model = model.merge_and_unload()
- 
+
 # Save the merged model
 merged_model.save_pretrained(output_path,safe_serialization=True)
 tokenizer.save_pretrained(output_path)

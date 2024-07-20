@@ -44,7 +44,7 @@ def generate_response(conversation):
     
     outputs = model.generate(
         input_ids=input_ids, 
-        max_new_tokens=100, 
+        max_new_tokens=256, 
         do_sample=True,
         top_p=0.9,
         temperature=0.9,
