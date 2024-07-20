@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 model_id = os.getenv("model_path")
+output_path = os.getenv("fine_tuned_model")
+check_point = os.getenv("check_point")
 
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
@@ -17,11 +19,12 @@ model = AutoModelForCausalLM.from_pretrained(
     use_flash_attention_2=use_flash_attention,
     device_map="auto",
 )
-
-
 tokenizer = AutoTokenizer.from_pretrained(model_id)
-tokenizer.pad_token = tokenizer.eos_token
+tokenizer.pad_token = tokenizer.bos_token
 tokenizer.padding_side = "right"
+
+model.resize_token_embeddings(len(tokenizer))
+print(len(tokenizer))
 
 from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
  
@@ -40,28 +43,26 @@ model = prepare_model_for_kbit_training(model)
 model = get_peft_model(model, peft_config)
 
 from transformers import TrainingArguments
-
+max_seq_length = 2048 # max sequence length for model and packing of the dataset
 args = TrainingArguments(
-    output_dir="llama-7-int4-dolly",
+	output_dir=check_point,
     num_train_epochs=3,
     per_device_train_batch_size=1,
     gradient_accumulation_steps=2,
     gradient_checkpointing=True,
-    optim="paged_adamw_32bit",
+    optim="paged_adamw_32bit", #optim="adamw_torch", 
     logging_steps=10,
     save_strategy="epoch",
-    #learning_rate=2e-4,
+    #learning_rate=1e-4,
     bf16=True,
     tf32=True,
     max_grad_norm=0.3,
     warmup_ratio=0.03,
     lr_scheduler_type="constant",
-    disable_tqdm=True # disable tqdm since with packing values are in correct
+    disable_tqdm=True, # disable tqdm since with packing values are in correct
 )
 
 from trl import SFTTrainer
- 
-max_seq_length = 2048 # max sequence length for model and packing of the dataset
 
 import dataset_loader
 def format_instruction(sample):
@@ -69,9 +70,9 @@ def format_instruction(sample):
 {ss}
  
 ### {rn}:
-{rs}
+{rs}{tokenizer.eos_token}
 """ for sn, ss, rn, rs in zip(sample["說話者"], sample["說話者話語"], sample["回應者"], sample["回應者話語"], )]
-	print(inputs)
+
 	out = tokenizer(inputs, max_length=512, truncation=True, padding='max_length')
 	return out
 
@@ -82,41 +83,50 @@ trainer = SFTTrainer(
     model=model,
     train_dataset=dataset,
     peft_config=peft_config,
-    max_seq_length=max_seq_length,
     tokenizer=tokenizer,
     packing=False,
+    max_seq_length=max_seq_length,
     args=args,
 )
 
 trainer.train()
-trainer.save_model()
+#trainer.save_model()
+ 
+#args.output_dir = "llama-7-int4-dolly"
 
-import torch
-from peft import AutoPeftModelForCausalLM
-from transformers import AutoTokenizer
- 
-args.output_dir = "llama-7-int4-dolly"
- 
+#from peft import AutoPeftModelForCausalLM
 # load base LLM model and tokenizer
-model = AutoPeftModelForCausalLM.from_pretrained(
-    args.output_dir,
-    low_cpu_mem_usage=True,
-    torch_dtype=torch.float16,
-    load_in_4bit=True,
-)
-tokenizer = AutoTokenizer.from_pretrained(args.output_dir)
+#model = AutoPeftModelForCausalLM.from_pretrained(
+#    args.output_dir,
+#    low_cpu_mem_usage=True,
+#    torch_dtype=torch.float16,
+#    load_in_4bit=True,
+#)
+#tokenizer = AutoTokenizer.from_pretrained(args.output_dir)
+ 
+#prompt = f"""### Yimi:
+#Hi
 
-from datasets import load_dataset
- 
-prompt = f"""### Yimi:
-Hi
- 
 ### Funi:
-"""
+#"""
  
-input_ids = tokenizer(prompt, return_tensors="pt", truncation=True).input_ids.cuda()
+#input_ids = tokenizer(prompt, return_tensors="pt", truncation=True).input_ids.cuda()
 # with torch.inference_mode():
-outputs = model.generate(input_ids=input_ids, max_new_tokens=100, do_sample=True, top_p=0.9,temperature=0.9)
- 
+#outputs = model.generate(
+#	input_ids=input_ids, 
+#	max_new_tokens=100, 
+#	do_sample=True, 
+#	top_p=0.9, 
+#	temperature=0.9, 
+#	eos_token_id=tokenizer.eos_token_id,
+#	pad_token_id=tokenizer.pad_token_id,
+#)
 
-print(f"Generated instruction:\n{tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0][len(prompt):]}")
+#print(f"adapter:\n{tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0][len(prompt):]}")
+ 
+# Merge LoRA and base model
+merged_model = model.merge_and_unload()
+ 
+# Save the merged model
+merged_model.save_pretrained(output_path,safe_serialization=True)
+tokenizer.save_pretrained(output_path)

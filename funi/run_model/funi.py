@@ -17,7 +17,7 @@ load_dotenv()
 
 # Initialize model and tokenizer
 mode = 'local'
-model_path = os.getenv("model_path")
+model_path = os.getenv("fine_tuned_model")
 chat_data_all_path = "./chat_data/chat_data_all.json"
 chat_data_all_backup_path = "./chat_data/chat_data_all_backup.json"
 
@@ -44,7 +44,8 @@ def generate_response(messages):
         do_sample=True, 
         temperature=0.6, 
         top_p=0.9, 
-        pad_token_id=tokenizer.eos_token_id
+        eos_token_id=tokenizer.eos_token_id,
+        pad_token_id=tokenizer.pad_token_id
     )
     
     response = tokenizer.decode(outputs[0][input_ids.shape[-1]:], skip_special_tokens=True)
