@@ -10,7 +10,6 @@ check_point = os.getenv("check_point")
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
 )
-
 use_flash_attention = False
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
@@ -20,10 +19,10 @@ model = AutoModelForCausalLM.from_pretrained(
     device_map="auto",
 )
 tokenizer = AutoTokenizer.from_pretrained(model_id)
-tokenizer.pad_token = tokenizer.bos_token
+tokenizer.pad_token = "<|pad|>"
 tokenizer.padding_side = "right"
 
-model.resize_token_embeddings(len(tokenizer))
+#model.resize_token_embeddings(len(tokenizer))
 print(len(tokenizer))
 
 from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
@@ -43,7 +42,7 @@ model = prepare_model_for_kbit_training(model)
 model = get_peft_model(model, peft_config)
 
 from transformers import TrainingArguments
-max_seq_length = 2048 # max sequence length for model and packing of the dataset
+
 args = TrainingArguments(
 	output_dir=check_point,
     num_train_epochs=3,
@@ -85,44 +84,42 @@ trainer = SFTTrainer(
     peft_config=peft_config,
     tokenizer=tokenizer,
     packing=False,
-    max_seq_length=max_seq_length,
+    max_seq_length=8192,
     args=args,
 )
 
 trainer.train()
-#trainer.save_model()
- 
-#args.output_dir = "llama-7-int4-dolly"
+trainer.save_model()
 
-#from peft import AutoPeftModelForCausalLM
+from peft import AutoPeftModelForCausalLM
 # load base LLM model and tokenizer
-#model = AutoPeftModelForCausalLM.from_pretrained(
-#    args.output_dir,
-#    low_cpu_mem_usage=True,
-#    torch_dtype=torch.float16,
-#    load_in_4bit=True,
-#)
-#tokenizer = AutoTokenizer.from_pretrained(args.output_dir)
+model = AutoPeftModelForCausalLM.from_pretrained(
+    check_point,
+    low_cpu_mem_usage=True,
+    torch_dtype=torch.float16,
+    load_in_4bit=True,
+)
+tokenizer = AutoTokenizer.from_pretrained(args.output_dir)
  
-#prompt = f"""### Yimi:
-#Hi
+prompt = f"""### Yimi:
+Hi
 
 ### Funi:
-#"""
+"""
  
-#input_ids = tokenizer(prompt, return_tensors="pt", truncation=True).input_ids.cuda()
+input_ids = tokenizer(prompt, return_tensors="pt", truncation=True).input_ids.cuda()
 # with torch.inference_mode():
-#outputs = model.generate(
-#	input_ids=input_ids, 
-#	max_new_tokens=100, 
-#	do_sample=True, 
-#	top_p=0.9, 
-#	temperature=0.9, 
-#	eos_token_id=tokenizer.eos_token_id,
-#	pad_token_id=tokenizer.pad_token_id,
-#)
+outputs = model.generate(
+	input_ids=input_ids, 
+	max_new_tokens=100, 
+	do_sample=True, 
+	top_p=0.9, 
+	temperature=0.9, 
+	eos_token_id=tokenizer.eos_token_id,
+	pad_token_id=tokenizer.pad_token_id,
+)
 
-#print(f"adapter:\n{tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0][len(prompt):]}")
+print(f"adapter:\n{tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0][len(prompt):]}")
  
 # Merge LoRA and base model
 merged_model = model.merge_and_unload()
