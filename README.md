@@ -5,7 +5,7 @@
 1. 下載 requirement.txt 中的所有 python 庫
 2. 將下載好的大語言模型放入 text-gpt-models 資料夾
 
-* 若要下載一定適用於這個專案的大語言模型，請前往 [Hunggingface](https://huggingface.co/) ，選擇 [Llama-3-8B](https://huggingface.co/meta-llama/Meta-Llama-3-8B) ，並選擇適合的模型
+* 若要下載一定適用於這個專案的大語言模型，請前往 [Hunggingface](https://huggingface.co/) ，選擇 [Llama-3-8B](https://huggingface.co/meta-llama/Meta-Llama-3-8B)
 * 若要連線到 Discord ，請在 .env 文件中新增 `discord_token = <your_token>`
 
 ### 微調模型
