@@ -49,7 +49,7 @@ def generate_response(conversation):
         pad_token_id=tokenizer.pad_token_id,
     )
     response = tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0][len(conversation):]
-    print(outputs[0][input_ids.shape[-1]:])
+    #print(outputs[0][input_ids.shape[-1]:]) # check tensor
     return response
 
 def main_request(speaker_input, speaker):
@@ -61,6 +61,8 @@ def main_request(speaker_input, speaker):
 ### Funi:
 """
     response = generate_response(conversation)
+    response = response.split("\n\n###")
+    response = response[0]
     # pinging end
     end_time = time.time()
     print(f"\n[ping:{int((end_time - start_time)*1000)}ms]{funi_mind.funi_name}: {response}")
