@@ -12,12 +12,9 @@ import funi_mind
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"\n[ device: {device} ]\n")
 
-from dotenv import load_dotenv
-load_dotenv()
-
 # Initialize model and tokenizer
 mode = 'local'
-model_path = os.getenv("fine_tuned_model")
+model_path = "./text-gpt-models/funi-model"
 chat_data_all_path = "./chat_data/chat_data_all.json"
 chat_data_all_backup_path = "./chat_data/chat_data_all_backup.json"
 

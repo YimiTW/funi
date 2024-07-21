@@ -1,10 +1,12 @@
 torch
+torchaudio
+torchvision
 transformers
-accelerate
+datasets
+bitsandbytes
 python-dotenv
 discord.py
-selenium
-googlesearch-python
-datasets
-sentencepiece
 peft
+trl
+setuptools
+wheel

@@ -1,7 +1,7 @@
 import json
 
 path_list = [
-    "./funi/fine_tune_model/dataset_io.json",
+    "./fine_tune_model/dataset_io.json",
 ]
 def load_json(path):
     with open(path, 'r') as f:

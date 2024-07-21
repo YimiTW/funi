@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 model_id = os.getenv("model_path")
-output_path = os.getenv("fine_tuned_model")
-check_point = os.getenv("check_point")
+output_path = "./text-gpt-models/funi-model"
+check_point = "./text-gpt-models/funi-adapter-model"
 
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
@@ -21,6 +21,7 @@ model = AutoModelForCausalLM.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 tokenizer.pad_token = "<|pad|>"
 tokenizer.padding_side = "right"
+tokenizer.eos_token = "<|eos|>"
 
 #model.resize_token_embeddings(len(tokenizer))
 print(len(tokenizer))
@@ -64,8 +65,7 @@ from trl import SFTTrainer
 
 import dataset_loader
 def format_instruction(sample):
-	inputs = [f"""{tokenizer.eos_token}
-### {sn}:
+	inputs = [f"""### {sn}:
 {ss}
 
 ### {rn}:
