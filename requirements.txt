@@ -8,5 +8,3 @@ python-dotenv
 discord.py
 peft
 trl
-setuptools
-wheel

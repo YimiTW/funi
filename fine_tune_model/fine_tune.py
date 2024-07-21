@@ -21,7 +21,6 @@ model = AutoModelForCausalLM.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 tokenizer.pad_token = "<|pad|>"
 tokenizer.padding_side = "right"
-tokenizer.eos_token = "<|eos|>"
 
 #model.resize_token_embeddings(len(tokenizer))
 print(f"vocab size: {len(tokenizer)}")
@@ -38,7 +37,7 @@ peft_config = LoraConfig(
         bias="none",
         task_type="CAUSAL_LM",
 )
- 
+
 # prepare model for training
 model = prepare_model_for_kbit_training(model)
 model = get_peft_model(model, peft_config)
@@ -47,14 +46,14 @@ from transformers import TrainingArguments
 
 args = TrainingArguments(
 	output_dir=check_point,
-    num_train_epochs=3,
-    per_device_train_batch_size=1,
+    num_train_epochs=3, # default is 3
+    per_device_train_batch_size=4, # default is 4
     gradient_accumulation_steps=2,
     gradient_checkpointing=True,
-    optim="paged_adamw_32bit", #optim="adamw_torch", 
+    optim="paged_adamw_32bit",
     logging_steps=10,
     save_strategy="epoch",
-    #learning_rate=1e-4,
+    learning_rate=5e-5, # default is 5e-5
     bf16=True,
     tf32=True,
     max_grad_norm=0.3,
@@ -71,10 +70,7 @@ def format_instruction(sample):
 {ss}
 
 ### {rn}:
-{rs}
-{tokenizer.eos_token}
-""" for sn, ss, rn, rs in zip(sample["說話者"], sample["說話者話語"], sample["回應者"], sample["回應者話語"], )]
-
+{rs}{tokenizer.eos_token}""" for sn, ss, rn, rs in zip(sample["說話者"], sample["說話者話語"], sample["回應者"], sample["回應者話語"], )]
 	out = tokenizer(inputs, max_length=512, truncation=True, padding='max_length')
 	return out
 
@@ -104,11 +100,11 @@ model = AutoPeftModelForCausalLM.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained(args.output_dir)
 
 prompt = f"""### Yimi:
-Hi
+妳是誰？
 
 ### Funi:
 """
- 
+
 input_ids = tokenizer(prompt, return_tensors="pt", truncation=True).input_ids.cuda()
 # with torch.inference_mode():
 outputs = model.generate(

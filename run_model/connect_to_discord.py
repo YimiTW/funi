@@ -32,4 +32,4 @@ async def on_message(message): # 當頻道有新訊息
     if funi_response != "*skip*":
         await message.channel.send(funi_response)
 
-client.run(os.getenv('token'))
+client.run(os.getenv('discord_token'))
