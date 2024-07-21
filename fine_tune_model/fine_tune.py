@@ -24,7 +24,9 @@ tokenizer.padding_side = "right"
 tokenizer.eos_token = "<|eos|>"
 
 #model.resize_token_embeddings(len(tokenizer))
-print(len(tokenizer))
+print(f"vocab size: {len(tokenizer)}")
+print(f"pad_token: {tokenizer.pad_token}")
+print(f"eos_token: {tokenizer.eos_token}")
 
 from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
 
