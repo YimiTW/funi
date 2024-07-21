@@ -16,10 +16,12 @@
 5. 運行 fine_tune.py
 
 * 如果想讓model有其他名子，可以修改 fine_tune.py 中的 `{rn}` 成名子，記得下方測試adapter model 的 `prompt` 和 funi.py 中的 `conversation` 的 名子都要改掉
-* 目前fine_tune.py只有在 llama-3-8B (基礎模型) 上證實有效
+* 目前fine_tune.py只有在 Llama-3-8B (基礎模型) 上證實有效
 
 ### 運行模型
 1. 運行 local.py 或 connect_to_discord.py ，運行大語言模型
+
+* Llama-3-8B 模型需要至少 7GB 的 vram 才能穩定運行
 
 ## License
 
