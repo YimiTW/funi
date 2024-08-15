@@ -31,7 +31,8 @@ This project (My code, not llama-3-8B) is licensed under the MIT License. See th
 
 This project makes use of the following open-source projects:
 
-* Built with Meta Llama 3 [Llama-3-8B](https://huggingface.co/meta-llama/Meta-Llama-3-8B) - Licensed under the LLAMA 3 COMMUNITY LICENSE
+* [GPT-Sovits](https://github.com/RVC-Boss/GPT-SoVITS) - Licensed under the MIT LICENSE
+* Built with Meta [Llama-3-8B](https://huggingface.co/meta-llama/Meta-Llama-3-8B) - Licensed under the LLAMA 3 COMMUNITY LICENSE
 
 ## 備註
 * 自述文件可能會有遺漏的地方，如果照做不會動記得 bug report
